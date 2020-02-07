@@ -180,9 +180,6 @@ def detect_languages(value: str, source_path=None):
             except Exception as e:
                 logging.error(f'Can\'t detect language: ({value})\nerror: {e}')
 
-    # print(f'value: {value}')
-    # print(f'langs: {langs}')
-
     return set(langs)
 
 
@@ -362,7 +359,6 @@ def make_timestamp(value: str):
         print(f'can\'t convert {value} to .timestamp {date_stamp} \nerror: {e}')
         logging.error(f'can\'t convert {value} to .timestamp {date_stamp} \nerror: {e}')
 
-    # print(f'date_value: {date_value}')
     return date_stamp
 
 
@@ -483,7 +479,6 @@ class ExifData:
         if not GROUP_NO_EXIF:
             self.get_exif_os()
 
-        # print(f'\n{exiflib}: {self.file_path}')
 
     def get_exif_win32com(self):
         """get exif for media files (video, audio) by win32com"""
@@ -497,6 +492,8 @@ class ExifData:
 
         if value:
             self.change_value('date', make_timestamp(str(value)))
+
+
 
     def get_exif_pyexiv(self):
         """get exif by pyexiv2"""
