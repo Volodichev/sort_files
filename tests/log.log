@@ -1,0 +1,42 @@
+organize_photos.py[LINE:332]# ERROR    [2020-02-07 12:57:00,162] can't convert 2015:11:21 10:16:  to .timestamp None 
+error: 'NoneType' object has no attribute 'timestamp'
+organize_photos.py[LINE:332]# ERROR    [2020-02-07 12:57:00,206] can't convert 0000-00-00 00:00:00 to .timestamp None 
+error: month must be in 1..12
+organize_photos.py[LINE:332]# ERROR    [2020-02-07 12:57:00,230] can't convert None to .timestamp None 
+error: expected string or bytes-like object
+organize_photos.py[LINE:332]# ERROR    [2020-02-07 12:58:01,303] can't convert 2015:11:21 10:16:  to .timestamp None 
+error: 'NoneType' object has no attribute 'timestamp'
+organize_photos.py[LINE:332]# ERROR    [2020-02-07 12:58:01,346] can't convert 0000-00-00 00:00:00 to .timestamp None 
+error: month must be in 1..12
+organize_photos.py[LINE:332]# ERROR    [2020-02-07 12:58:01,380] can't convert None to .timestamp None 
+error: expected string or bytes-like object
+organize_photos.py[LINE:332]# ERROR    [2020-02-07 13:04:13,019] can't convert 2015:11:21 10:16:  to .timestamp None 
+error: 'NoneType' object has no attribute 'timestamp'
+organize_photos.py[LINE:332]# ERROR    [2020-02-07 13:04:13,121] can't convert 0000-00-00 00:00:00 to .timestamp None 
+error: month must be in 1..12
+organize_photos.py[LINE:332]# ERROR    [2020-02-07 13:04:13,150] can't convert None to .timestamp None 
+error: expected string or bytes-like object
+organize_photos.py[LINE:355]# ERROR    [2020-02-07 15:51:20,279] can't convert None to .timestamp None 
+error: expected string or bytes-like object
+organize_photos.py[LINE:355]# ERROR    [2020-02-07 15:53:15,420] can't convert None to .timestamp None 
+error: expected string or bytes-like object
+organize_photos.py[LINE:355]# ERROR    [2020-02-07 15:54:29,031] can't convert None to .timestamp None 
+error: expected string or bytes-like object
+organize_photos.py[LINE:359]# ERROR    [2020-02-07 15:56:38,913] can't convert None to .timestamp None 
+error: expected string or bytes-like object
+organize_photos.py[LINE:359]# ERROR    [2020-02-07 15:57:27,676] can't convert None to .timestamp None 
+error: expected string or bytes-like object
+organize_photos.py[LINE:359]# ERROR    [2020-02-07 15:59:12,160] can't convert None to .timestamp None 
+error: expected string or bytes-like object
+organize_photos.py[LINE:359]# ERROR    [2020-02-07 16:00:45,396] can't convert None to .timestamp None 
+error: expected string or bytes-like object
+organize_photos.py[LINE:359]# ERROR    [2020-02-07 16:02:04,980] can't convert None to .timestamp None 
+error: expected string or bytes-like object
+organize_photos.py[LINE:359]# ERROR    [2020-02-07 16:03:07,778] can't convert None to .timestamp None 
+error: expected string or bytes-like object
+organize_photos.py[LINE:358]# ERROR    [2020-02-07 16:10:02,306] can't convert None to .timestamp None 
+error: expected string or bytes-like object
+organize_photos.py[LINE:358]# ERROR    [2020-02-07 16:10:40,336] can't convert None to .timestamp None 
+error: expected string or bytes-like object
+organize_photos.py[LINE:358]# ERROR    [2020-02-07 16:11:31,820] can't convert None to .timestamp None 
+error: expected string or bytes-like object
