@@ -287,7 +287,7 @@ def make_timestamp(value: str):
     values = []
     date_value = None
     date_stamp = None
-    time_start = 315522000
+    date_start = 315522000
 
     splitter = None
     try:
@@ -304,56 +304,56 @@ def make_timestamp(value: str):
                 if splitter:
                     dt = values[0].split(splitter)
                     yy = int(dt[0])
-                    if yy < 1980:
-                        yy = 1980
-                    mm = int(dt[1])
-                    if mm < 1 or mm > 12:
-                        mm = 1
+                    if yy > 1980:
+                        mm = int(dt[1])
+                        if mm < 1 or mm > 12:
+                            mm = 1
 
-                    dd = int(dt[2])
-                    if dd < 1 or dd > 31:
-                        dd = 1
+                        dd = int(dt[2])
+                        if dd < 1 or dd > 31:
+                            dd = 1
 
-                    d = datetime.date(yy, mm, dd)
-                    tm = values[1].split(':')
-                    # gmt = values[2]
+                        d = datetime.date(yy, mm, dd)
+                        tm = values[1].split(':')
+                        # gmt = values[2]
 
-                    sh = tm[0]
-                    if not sh.isspace():
-                        h = int(sh)
-                        if h > 23:
-                            h = 23
-                        elif h < 0:
-                            h = 1
-                    else:
-                        h = 0
+                        sh = tm[0]
+                        if not sh.isspace():
+                            h = int(sh)
+                            if h > 23:
+                                h = 23
+                            elif h < 0:
+                                h = 1
+                        else:
+                            h = 0
 
-                    sm = tm[1]
-                    if not sm.isspace():
-                        m = int(sm)
-                        if m > 59:
-                            m = 59
-                        elif m < 0:
-                            m = 1
-                    else:
-                        m = 0
+                        sm = tm[1]
+                        if not sm.isspace():
+                            m = int(sm)
+                            if m > 59:
+                                m = 59
+                            elif m < 0:
+                                m = 1
+                        else:
+                            m = 0
 
-                    st = tm[2]
-                    if not st.isspace():
-                        s = int(st)
-                        if s > 59:
-                            s = 59
-                        elif s < 0:
+                        st = tm[2]
+                        if not st.isspace():
+                            s = int(st)
+                            if s > 59:
+                                s = 59
+                            elif s < 0:
+                                s = 1
+                        else:
                             s = 1
-                    else:
-                        s = 1
 
-                    t = datetime.time(h, m, s)
-                    date_value = datetime.datetime.combine(d, t)
+                        t = datetime.time(h, m, s)
+                        date_value = datetime.datetime.combine(d, t)
 
-            date_stamp = int(date_value.timestamp())
-            if int(date_stamp) < time_start:
-                date_stamp = None
+            if date_value:
+                date_stamp = int(date_value.timestamp())
+                if int(date_stamp) < date_start:
+                    date_stamp = None
 
     except Exception as e:
         print(f'can\'t convert {value} to .timestamp {date_stamp} \nerror: {e}')
@@ -420,8 +420,8 @@ class ExifData:
     def change_value(self, key, value):
         """Custom change class value"""
         if key == 'date':
-            if value is not None:
-                if self.date is None or value < self.date:
+            if value:
+                if value > 0 and (self.date is None or value < self.date):
                     self.date = int(value)
         elif key == 'is_screenshot':
             if not self.is_screenshot:
@@ -456,10 +456,7 @@ class ExifData:
             if int(self.size) > 15:
                 self.get_exif_pil()
                 if self.date is None and ext not in ('.gif',):
-                    # os.path.splitext(self.file_path)
                     path, file = os.path.split(self.file_path)
-                    # print(f'path: {path}')
-                    # print(f'file: {file}')
 
                     langs = []
                     langs.extend(detect_languages(file))
