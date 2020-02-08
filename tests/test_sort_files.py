@@ -20,6 +20,7 @@ import sort_files
     ('2015:11:21 10:16: 2', 1448090162),
     ('2015:11:21 10:16: ', 1448090161),
     ('1949-11-21 10:16:02', 343638962),
+    ('1899-12-29 21:00:00', 346960800),
     (None, None)
 ])
 def test_timestamp(request):
@@ -40,8 +41,8 @@ def test_organize_photos_make_timestamp(test_timestamp):
 @pytest.fixture(scope="function", params=[
     ('IMG_8089.jpg', 1457123393),
     ('IMG_8090.jpg', 1464695993),
-    ('1cde9h.jpg', 1574846374),
-    ('Foto-0271_e1.jpg', 1368716692)
+    ('1cde9h.jpg', None),
+    ('Foto-0271_e1.jpg', 1368720283)
 ])
 def test_file_paths(request):
     return request.param

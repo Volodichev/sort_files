@@ -30,7 +30,7 @@ SUPPORTED_EXTENSIONS = (
 SETTING_EXTENSIONS = ('.AAE', '.aae', '.THM', '.thm')
 
 FIND_SETS_FILES = True  # example .AAE, .THM
-GROUP_NO_EXIF = False  # /result/no_exif
+GROUP_NO_EXIF = True  # /result/no_exif
 CYR_LANG = ['bg', 'ru', 'uk', 'mk', 'et', 'me', 'sr']
 
 SCREENSHOTS_FOLDER = 'screenshots'
@@ -479,7 +479,6 @@ class ExifData:
         if not GROUP_NO_EXIF:
             self.get_exif_os()
 
-
     def get_exif_win32com(self):
         """get exif for media files (video, audio) by win32com"""
         value = None
@@ -492,8 +491,6 @@ class ExifData:
 
         if value:
             self.change_value('date', make_timestamp(str(value)))
-
-
 
     def get_exif_pyexiv(self):
         """get exif by pyexiv2"""
