@@ -165,14 +165,12 @@ def detect_languages(value: str, source_path=None):
         while t_folder:
             if source_path and os.path.samefile(t_path, source_path):
                 break
-
             t_path, t_folder = os.path.split(t_path)
-            if re.findall(r'[^\W\d]', t_folder):
+            if re.findall(r'[^_\W\d]', t_folder):
                 for detect_lang in detect_langs(t_folder):
                     langs.append(str(detect_lang.lang))
     else:
-        if re.findall(r'[^\W\d]', value):
-
+        if re.findall(r'[^_\W\d]', value):
             try:
                 langs.append(str(detect(value)))
                 for detect_lang in detect_langs(value):
