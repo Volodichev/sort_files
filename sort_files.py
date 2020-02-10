@@ -437,7 +437,7 @@ class ExifData:
             self.file_type = 'other'
 
         self.get_size_os()
-        if self.file_type is 'photo':
+        if self.file_type == 'photo':
             if int(self.size) > 15:
                 self.get_exif_pil()
                 if self.date is None and ext not in ('.gif',):
@@ -455,7 +455,7 @@ class ExifData:
                 if self.date is None and ext in ('.jpg', '.tiff'):
                     self.get_exif_piexif()
 
-        elif self.file_type is 'video' or self.file_type is 'audio':
+        elif self.file_type in ('video', 'audio'):
             self.get_exif_win32com()
 
         if not GROUP_NO_EXIF:
@@ -487,15 +487,14 @@ class ExifData:
             for exif_tag in ('EXIF', 'XMP'):
                 tags = exif_dict[exif_tag]
                 for tag in tags.keys():
-                    if tag == 'Thumbnail' or tag == 'Exif.Thumbnail.XResolution' or \
-                            tag == 'Exif.Thumbnail.YResolution' or tag == 'Exif.Thumbnail.ResolutionUnit' or \
-                            tag == 'Exif.Thumbnail.JPEGInterchangeFormat' or tag == 'Exif.Thumbnail.Compression' or \
-                            tag == 'Exif.Thumbnail.JPEGInterchangeFormatLength':
+                    if tag in ('Thumbnail', 'Exif.Thumbnail.JPEGInterchangeFormat',
+                               'Exif.Thumbnail.XResolution', 'Exif.Thumbnail.Compression',
+                               'Exif.Thumbnail.YResolution', 'Exif.Thumbnail.ResolutionUnit',
+                               'Exif.Thumbnail.JPEGInterchangeFormatLength'):
                         continue
 
-                    if tag == 'Exif.Image.DateTime' or \
-                            tag == 'Exif.Photo.DateTimeOriginal' or \
-                            tag == 'Exif.Photo.DateTimeDigitized':
+                    if tag in ( 'Exif.Photo.DateTimeOriginal', 'Exif.Image.DateTime',
+                                'Exif.Photo.DateTimeDigitized'):
 
                         value = tags[tag]
                         if value:
@@ -534,9 +533,7 @@ class ExifData:
                 if tag == 'Thumbnail':
                     continue
 
-                if tag == 'Image DateTime' or \
-                        tag == 'EXIF DateTimeOriginal' or \
-                        tag == 'EXIF DateTimeDigitized':
+                if tag in ('Image DateTime', 'EXIF DateTimeOriginal', 'EXIF DateTimeDigitized'):
                     value = tags[tag]
                     if value:
                         self.change_value('date', make_timestamp(str(value)))
@@ -582,9 +579,7 @@ class ExifData:
                         except UnicodeDecodeError as e:
                             logging.exception(f'{value}\n decode error: {e}')
 
-                    if tag == 'DateTime' or \
-                            tag == 'DateTimeOriginal' or \
-                            tag == 'DateTimeDigitized':
+                    if tag in ('DateTime', 'DateTimeOriginal', 'DateTimeDigitized'):
                         if value:
                             self.change_value('date', make_timestamp(str(value)))
                     elif tag == 'UserComment':
@@ -625,9 +620,7 @@ class ExifData:
                         except UnicodeDecodeError as e:
                             logging.exception(f'{value}\n decode error: {e}')
 
-                    if tag == 'DateTime' or \
-                            tag == 'DateTimeOriginal' or \
-                            tag == 'DateTimeDigitized':
+                    if tag in ('DateTime', 'DateTimeOriginal', 'DateTimeDigitized'):
                         if value:
                             self.change_value('date', make_timestamp(str(value)))
                     elif tag == 'UserComment':
