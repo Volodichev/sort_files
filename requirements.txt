@@ -5,4 +5,3 @@ pyexiv2==1.3.0
 pillow==7.0.0
 tqdm==4.42.0
 langdetect==1.0.7
-transliterate==1.10.2

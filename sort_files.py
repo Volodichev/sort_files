@@ -20,7 +20,6 @@ import exifread
 import piexif
 
 from langdetect import detect, detect_langs
-from transliterate import translit
 
 SUPPORTED_EXTENSIONS = (
     '.jpg', '.png', '.gif', '.bmp', '.tiff', '.psd',
@@ -195,18 +194,6 @@ def make_files_list(file: str, path: str):
             files.extend(temp_files)
 
     return files
-
-
-def translit_name(value: str, from_ru=None):
-    """Transliterate string"""
-    lang = 'ru'
-    if re.findall(r'[^\W\d]', value):
-        if from_ru:
-            value = translit(value=value, language_code=lang, reversed=from_ru)
-        elif not from_ru:
-            value = translit(value=value, language_code=lang, reversed=from_ru)
-
-    return value
 
 
 def move_files(files: list, path: str, new_path: str):
