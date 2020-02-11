@@ -447,6 +447,7 @@ class ExifData:
                     langs.extend(detect_languages(file))
                     langs.extend(detect_languages(path))
                     if not contain_any(langs, CYR_LANG):
+                        # pyexiv2 can't open files with cyrillic paths
                         self.get_exif_pyexiv()
 
                 if self.date is None and ext not in ('.png',):
@@ -466,7 +467,6 @@ class ExifData:
         value = None
         try:
             properties = propsys.SHGetPropertyStoreFromParsingName(self.file_path)
-            # title = properties.GetValue(pscon.PKEY_Title).GetValue()
             value = properties.GetValue(pscon.PKEY_Media_DateEncoded).GetValue()
         except Exception as e:
             logging.error(f'win32com: can\'t open file {self}\nerror: {e}')
@@ -493,9 +493,8 @@ class ExifData:
                                'Exif.Thumbnail.JPEGInterchangeFormatLength'):
                         continue
 
-                    if tag in ( 'Exif.Photo.DateTimeOriginal', 'Exif.Image.DateTime',
-                                'Exif.Photo.DateTimeDigitized'):
-
+                    if tag in ('Exif.Photo.DateTimeOriginal', 'Exif.Image.DateTime',
+                               'Exif.Photo.DateTimeDigitized'):
                         value = tags[tag]
                         if value:
                             self.change_value('date', make_timestamp(str(value)))
