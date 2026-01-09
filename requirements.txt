@@ -4,3 +4,4 @@ Pillow==10.4.0
 pywin32==306
 tqdm==4.66.4
 langdetect==1.0.9
+PyQt6==6.7.1
