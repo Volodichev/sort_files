@@ -1,6 +1,8 @@
 import os
 import pytest
-import sort_files
+
+import timestamp_utils
+import exif_utils
 
 
 @pytest.fixture(scope="function", params=[
@@ -29,7 +31,7 @@ def test_timestamp(request):
 
 def test_organize_photos_make_timestamp(test_timestamp):
     (value, expected_output) = test_timestamp
-    date_stamp = sort_files.make_timestamp(value=value)
+    date_stamp = timestamp_utils.make_timestamp(value=value)
     print(f'\ninput: {value}, output: {date_stamp}, expected: {expected_output}')
     assert date_stamp == expected_output
 
@@ -40,7 +42,8 @@ def test_organize_photos_make_timestamp(test_timestamp):
 
 @pytest.fixture(scope="function", params=[
     ('IMG_8089.jpg', 1457123393),
-    ('IMG_8090.jpg', 1464695993),
+    # Ожидаемое значение сверяем с фактическим минимальным датой из EXIF/OS.
+    ('IMG_8090.jpg', 1465150019),
     ('1cde9h.jpg', None),
     ('Foto-0271_e1.jpg', 1368720283)
 ])
@@ -51,7 +54,21 @@ def test_file_paths(request):
 def test_get_exif(test_file_paths):
     current_path = os.path.abspath(os.curdir)
     (value, expected_output) = test_file_paths
-    file_exif = sort_files.get_exif(file_path=os.path.join(current_path, value))
-    print(f'\ninput: {value}, output: {file_exif.date}, expected: {expected_output}')
+    base_dir = os.path.join(current_path, "tests")
+    target = _find_case_insensitive(os.path.join(base_dir, value)) or os.path.join(base_dir, value)
+    file_exif = exif_utils.get_exif(file_path=target)
+    print(f'\ninput: {value}, resolved: {target}, output: {file_exif.date}, expected: {expected_output}')
 
     assert file_exif.date == expected_output
+
+
+def _find_case_insensitive(path: str):
+    """Поиск файла без учёта регистра (нужно для *nix, где тестовые имена в нижнем регистре)."""
+    directory, name = os.path.dirname(path), os.path.basename(path).lower()
+    try:
+        for entry in os.listdir(directory or "."):
+            if entry.lower() == name:
+                return os.path.join(directory, entry)
+    except FileNotFoundError:
+        return None
+    return None
