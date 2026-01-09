@@ -1,6 +1,3 @@
-# !/usr/bin/python3
-# -*- coding: utf-8 -*-
-
 import datetime
 import logging
 import shutil
@@ -13,7 +10,13 @@ from PIL.ExifTags import TAGS as PIL_TAGS
 from PIL import Image as PIL_Image
 
 from win32com.propsys import propsys, pscon
-from pyexiv2 import Image as pyexiv2_Image
+
+try:
+    from pyexiv2 import Image as pyexiv2_Image
+    HAS_PYEXIV2 = True
+except Exception as e:  # библиотека может отсутствовать на Python 3.11
+    HAS_PYEXIV2 = False
+    logging.warning(f'pyexiv2 is not available, skip pyexiv2 exif reader: {e}')
 from piexif import TAGS as PIEXIF_TAGS
 from tqdm import tqdm
 import exifread
@@ -86,8 +89,8 @@ def sort_files(source_path=None, result_path=None):
 
     for n in tqdm(range(0, fl_count), desc=f'move files', ncols=100):
         filedict = files_with_path[n-1]
-        file = filedict['file']
-        path = filedict['path']
+        file = filedict.get('file')
+        path = filedict.get('path')
         file_path = os.path.join(path, file)
 
         files = make_files_list(file=file, path=path)
@@ -166,8 +169,11 @@ def detect_languages(value: str, source_path=None):
                 break
             t_path, t_folder = os.path.split(t_path)
             if re.findall(r'[^_\W\d]', t_folder):
-                for detect_lang in detect_langs(t_folder):
-                    langs.append(str(detect_lang.lang))
+                try:
+                    for detect_lang in detect_langs(t_folder):
+                        langs.append(str(detect_lang.lang))
+                except Exception as e:
+                    logging.error(f'Can\'t detect language in path chunk: ({t_folder})\nerror: {e}')
     else:
         if re.findall(r'[^_\W\d]', value):
             try:
@@ -412,8 +418,9 @@ class ExifData:
             if not self.is_screenshot:
                 self.is_screenshot = value
         else:
-            if self[key] is not None and self[key] != value:
-                last = self[key]
+            # if self[key] is not None and self[key] != value:
+            last = self[key]
+            if last is not None and last != value:
                 logging.warning(f'change {key} from {last} to {value}')  # Сообщение критическое
 
             self[key] = value
@@ -476,6 +483,8 @@ class ExifData:
 
     def get_exif_pyexiv(self):
         """get exif by pyexiv2"""
+        if not HAS_PYEXIV2:
+            return
         exif_dict = None
         try:
             i = pyexiv2_Image(self.file_path)
@@ -485,7 +494,10 @@ class ExifData:
 
         if exif_dict:
             for exif_tag in ('EXIF', 'XMP'):
-                tags = exif_dict[exif_tag]
+                # tags = exif_dict[exif_tag]
+                tags = exif_dict.get(exif_tag)
+                if not tags:
+                    continue
                 for tag in tags.keys():
                     if tag in ('Thumbnail', 'Exif.Thumbnail.JPEGInterchangeFormat',
                                'Exif.Thumbnail.XResolution', 'Exif.Thumbnail.Compression',
@@ -495,27 +507,27 @@ class ExifData:
 
                     if tag in ('Exif.Photo.DateTimeOriginal', 'Exif.Image.DateTime',
                                'Exif.Photo.DateTimeDigitized'):
-                        value = tags[tag]
+                        value = tags.get(tag)
                         if value:
                             self.change_value('date', make_timestamp(str(value)))
                     elif tag == 'Xmp.exif.UserComment':
-                        value = tags[tag]
+                        value = tags.get(tag)
                         if 'screenshot' in value.lower():
                             self.change_value('is_screenshot', True)
                     elif tag == 'Exif.Image.Make':
-                        value = tags[tag]
+                        value = tags.get(tag)
                         self.change_value('brand', str(value))
                     elif tag == 'Exif.Image.Model':
-                        value = tags[tag]
+                        value = tags.get(tag)
                         self.change_value('model', str(value))
                     elif tag == 'Exif.Photo.PixelXDimension':
-                        value = tags[tag]
+                        value = tags.get(tag)
                         self.change_value('width', str(value))
                     elif tag == 'Exif.Photo.PixelYDimension':
-                        value = tags[tag]
+                        value = tags.get(tag)
                         self.change_value('height', str(value))
                     elif tag == 'Exif.Photo.LensModel':
-                        value = tags[tag]
+                        value = tags.get(tag)
                         self.change_value('lens', str(value))
 
     def get_exif_exifread(self):
@@ -533,27 +545,27 @@ class ExifData:
                     continue
 
                 if tag in ('Image DateTime', 'EXIF DateTimeOriginal', 'EXIF DateTimeDigitized'):
-                    value = tags[tag]
+                    value = tags.get(tag)
                     if value:
                         self.change_value('date', make_timestamp(str(value)))
                 elif tag == 'UserComment':
-                    value = str(tags[tag])
+                    value = str(tags.get(tag))
                     if 'screenshot' in value.lower():
                         self.change_value('is_screenshot', True)
                 elif tag == 'Image Make':
-                    value = tags[tag]
+                    value = tags.get(tag)
                     self.change_value('brand', str(value))
                 elif tag == 'Image Model':
-                    value = tags[tag]
+                    value = tags.get(tag)
                     self.change_value('model', str(value))
                 elif tag == 'EXIF ExifImageWidth':
-                    value = tags[tag]
+                    value = tags.get(tag)
                     self.change_value('width', str(value))
                 elif tag == 'EXIF ExifImageLength':
-                    value = tags[tag]
+                    value = tags.get(tag)
                     self.change_value('height', str(value))
                 elif tag == 'EXIF LensModel':
-                    value = tags[tag]
+                    value = tags.get(tag)
                     self.change_value('lens', str(value))
 
     def get_exif_piexif(self):
@@ -566,10 +578,22 @@ class ExifData:
 
         if data:
             for data_key in ('Exif', '0th', '1st', 'GPS', 'Interop'):
-                tags_key = data[data_key]
+                dk = PIEXIF_TAGS.get(data_key)
+                if not dk:
+                    continue
+                tags_key = data.get(data_key)
+                if not tags_key:
+                    continue
                 for tag_key in tags_key.keys():
-                    tag = PIEXIF_TAGS[data_key][tag_key]['name']
-                    value = tags_key[tag_key]
+                    # tag = PIEXIF_TAGS[data_key][tag_key]['name']
+                    tk = dk.get(tag_key)
+                    if not tk:
+                        continue
+                    tag = tk.get('name')
+                    if not tag:
+                        continue
+
+                    value = tags_key.get(tag_key)
                     if tag == 'Thumbnail':
                         continue
                     if type(value) is bytes:
@@ -577,12 +601,13 @@ class ExifData:
                             value = value.decode('MacCyrillic')
                         except UnicodeDecodeError as e:
                             logging.exception(f'{value}\n decode error: {e}')
+                            continue  # can't safely decode, skip tag
 
                     if tag in ('DateTime', 'DateTimeOriginal', 'DateTimeDigitized'):
                         if value:
                             self.change_value('date', make_timestamp(str(value)))
                     elif tag == 'UserComment':
-                        if 'screenshot' in value.lower():
+                        if isinstance(value, str) and 'screenshot' in value.lower():
                             self.change_value('is_screenshot', True)
                     elif tag == 'Make':
                         self.change_value('brand', str(value))
@@ -610,7 +635,7 @@ class ExifData:
             img_exif_dict = dict(info)
             for key, value in img_exif_dict.items():
                 if key in PIL_TAGS:
-                    tag = PIL_TAGS[key]
+                    tag = PIL_TAGS.get(key)
                     if tag == 'Thumbnail':
                         continue
                     if type(value) is bytes:
