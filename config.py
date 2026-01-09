@@ -1,7 +1,7 @@
 import logging
 
 SUPPORTED_EXTENSIONS = (
-    '.jpg', '.png', '.gif', '.bmp', '.tiff', '.psd',
+    '.jpg', '.png', '.gif', '.bmp', '.tiff', '.psd', '.dng',
     '.mov', '.avi', '.mp4',
     '.mp3', '.m4a'
 )

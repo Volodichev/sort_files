@@ -5,6 +5,7 @@ from typing import Iterable
 from PyQt6 import QtCore, QtWidgets
 
 import config
+import version
 from sorter import sort_files
 
 
@@ -59,7 +60,8 @@ class SortWorker(QtCore.QThread):
 class SortFilesWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle('Sort Files')
+        self.app_version = getattr(version, 'VERSION', '1.0.0')
+        self.setWindowTitle(f'Sort Files v{self.app_version}')
         self.worker: SortWorker | None = None
         self._build_ui()
 
@@ -69,6 +71,9 @@ class SortFilesWindow(QtWidgets.QMainWindow):
 
         layout = QtWidgets.QVBoxLayout()
         central.setLayout(layout)
+
+        version_label = QtWidgets.QLabel(f'Версия: {self.app_version}')
+        layout.addWidget(version_label)
 
         form = QtWidgets.QFormLayout()
 
