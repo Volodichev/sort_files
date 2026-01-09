@@ -7,7 +7,14 @@ import piexif
 from PIL import Image as PIL_Image
 from PIL.ExifTags import TAGS as PIL_TAGS
 from piexif import TAGS as PIEXIF_TAGS
-from win32com.propsys import propsys, pscon
+
+try:
+    from win32com.propsys import propsys, pscon
+
+    HAS_WIN32COM = True
+except Exception as e:
+    HAS_WIN32COM = False
+    logging.warning(f'win32com is not available, skip Windows metadata reader: {e}')
 
 import config
 from language_utils import contain_any, detect_languages
@@ -143,13 +150,16 @@ class ExifData:
                     self.get_exif_piexif()
 
         elif self.file_type in ('video', 'audio'):
-            self.get_exif_win32com()
+            if HAS_WIN32COM:
+                self.get_exif_win32com()
 
         if not config.GROUP_NO_EXIF:
             self.get_exif_os()
 
     def get_exif_win32com(self):
         """Get exif for media files (video, audio) by win32com."""
+        if not HAS_WIN32COM:
+            return
         value = None
         try:
             properties = propsys.SHGetPropertyStoreFromParsingName(self.file_path)

@@ -1,43 +1,68 @@
-# sort_files
+# Sort Files
 
+Утилита для сортировки фото/видео по дате съёмки (EXIF, метаданные Windows или дата файла). Складывает файлы по структуре `result/YYYY/MM/DD/filename.ext`, для файлов без EXIF создаёт папку `no_exif`, а скриншоты складывает в отдельную папку `screenshots`.
 
-> **Disclaimer**<a name="disclaimer" />: Please make backup your media before using this script!
+> **Важно:** перед использованием сделайте резервную копию ваших фото/видео.
 
-Sort files with SUPPORTED_EXTENSIONS by creation date and put them to directories Year/Month/Day by exif headers Date. If there is no exif Date it takes from os creation time. Use PIL, piexif, exifread, pyexiv2 libraries.
-Sorting jpeg files by date and time from EXIF.
+## Возможности
+- EXIF извлекается несколькими бэкендами (Pillow, pyexiv2\*, exifread, piexif) с fallback на дату файла или свойства Windows.
+- Поддержка вспомогательных файлов `.AAE`, `.THM` (копируются вместе с основным файлом).
+- GUI на PyQt6 и CLI-режим.
+- Тесты на pytest для ключевых сценариев.
+- Работает на Windows; на Linux/macOS функции, завязанные на pywin32, будут отключены автоматически.
 
-for ex.:
+## Требования
+- Python 3.10+
+- Зависимости из `requirements.txt` (`pywin32` подтянется только на Windows).
 
-C:\Users\user\sort_files\result\2017\6\19\IMG_1017.jpg
+## Установка
+```bash
+git clone https://github.com/Volodichev/sort_files.git
+cd sort_files
+python -m venv .venv
+.venv\Scripts\activate        # Windows
+pip install -r requirements.txt
+```
 
-
-### Installation Instructions
-
-1. Fork/Clone/Download this repo
-    ```elm
-    git clone https://github.com/Volodichev/sort_files.git
-    ```
-
-2. Navigate to the directory
-
-    ```elm
-    cd sort_files`
-    ```
-
-3. Install the dependencies
-
-    ```elm
-    pip install -r requirements.txt
-    ```
-
-4. Put copy of your files to folder 'source'
-
-5. Run the sort_files.py script and all sorted staff will move to folder 'result' 
+## CLI
+```bash
+python sort_files.py --source C:\media\raw --result C:\media\result
+```
+Полезные флаги:
+- `--no-group-no-exif` — не складывать файлы без EXIF в `no_exif`, использовать дату ОС.
+- `--source`, `--result` — явные пути к папкам (по умолчанию используются `source/` и `result/` в корне проекта).
+- `--version` — версия приложения.
 
 ## GUI (PyQt6)
+```bash
+python gui.py
+```
+Укажите `source` и `result`, при необходимости поправьте расширения и флаги, затем нажмите «Запустить сортировку».
 
-- Install deps `pip install -r requirements.txt`
-- Run `python gui.py`
-- In the interface, select the `source` and `result` folders, configure extensions and flags from `config.py`, then click "Start sorting".
+## Тесты
+```bash
+pip install -r requirements.dev.txt
+pytest -q
+```
 
+## Конфигурация
+Основные настройки в `config.py`:
+- `SUPPORTED_EXTENSIONS`, `SETTING_EXTENSIONS`
+- `FIND_SETS_FILES` — искать вспомогательные файлы
+- `GROUP_NO_EXIF` — складывать файлы без EXIF в отдельную папку
+- Имена рабочих директорий (`SOURCE_FOLDER`, `RESULT_FOLDER`, `SCREENSHOTS_FOLDER` и т.д.)
 
+## Структура проекта
+- `sort_files.py` — CLI-вход
+- `gui.py` — PyQt6 GUI
+- `sorter.py` — основная логика сортировки
+- `exif_utils.py` — извлечение метаданных
+- `fs_utils.py` — файловые операции
+- `tests/` — тестовые данные и pytest-спеки
+
+## Частые проблемы
+- **pyexiv2 или pywin32 не ставятся на *nix.** Библиотека пропускается, остальные бэкенды продолжат работать.
+- **Большие изображения и DecompressionBombWarning.** Pillow отключает лимит размеров в коде, но будьте осторожны с подозрительными файлами.
+
+---
+Если проект помог, поставьте звёздочку и поделитесь отзывом 🙂
