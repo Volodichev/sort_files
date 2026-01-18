@@ -13,12 +13,14 @@ def make_files_list(file: str, path: str) -> list[str]:
     if config.FIND_SETS_FILES:
         file_name, file_ext = os.path.splitext(file)
         folder_elements = os.listdir(path)
-        temp_files = []
+        folder_map = {elem.lower(): elem for elem in folder_elements}
+
         for temp_ext in config.SETTING_EXTENSIONS:
-            temp_files.append(''.join((file_name, temp_ext)))
-        temp_files = list(set(temp_files) & set(folder_elements))
-        if temp_files:
-            files.extend(temp_files)
+            candidate = ''.join((file_name, temp_ext))
+            candidate_lower = candidate.lower()
+            original_case = folder_map.get(candidate_lower)
+            if original_case:
+                files.append(original_case)
 
     return files
 

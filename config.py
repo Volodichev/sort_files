@@ -1,11 +1,11 @@
 import logging
 
-SUPPORTED_EXTENSIONS = (
-    '.jpg', '.png', '.gif', '.bmp', '.tiff', '.psd', '.dng',
-    '.mov', '.avi', '.mp4',
-    '.mp3', '.m4a'
-)
+PHOTO_EXTENSIONS = ('.jpg', '.png', '.gif', '.bmp', '.psd', '.tiff', '.heic')
+VIDEO_EXTENSIONS = ('.mp4', '.mov', '.avi')
+AUDIO_EXTENSIONS = ('.mp3', '.m4a')
+SUPPORTED_EXTENSIONS = PHOTO_EXTENSIONS + VIDEO_EXTENSIONS + AUDIO_EXTENSIONS
 SETTING_EXTENSIONS = ('.AAE', '.aae', '.THM', '.thm')
+
 
 FIND_SETS_FILES = True  # example .AAE, .THM
 GROUP_NO_EXIF = True  # /result/no_exif

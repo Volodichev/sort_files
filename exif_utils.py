@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import time
 
 import exifread
@@ -28,6 +29,100 @@ except Exception as e:  # библиотека может отсутствова
     logging.warning(f'pyexiv2 is not available, skip pyexiv2 exif reader: {e}')
 
 import fs_utils
+
+
+TAG_NORMALIZER = re.compile(r'[\s\._:-]+')
+
+DATE_TAGS = {
+    'datetime',
+    'datetimeoriginal',
+    'datetimedigitized',
+    'imagedatetime',
+    'exifdatetime',
+    'exifdatetimeoriginal',
+    'exifdatetimedigitized',
+    'mediacreatedate',
+    'createdate',
+    'creationdate',
+    'modifydate',
+    'datetaken',
+    'datecreated',
+    'dateencoded',
+    'pkeyphotodatetaken',
+    'pkeymediadateencoded',
+}
+
+BRAND_TAGS = {
+    'make',
+    'imagemake',
+    'cameramake',
+    'devicemanufacturer',
+    'pkeyphotocameramanufacturer',
+}
+
+MODEL_TAGS = {
+    'model',
+    'imagemodel',
+    'cameramodelname',
+    'devicemodel',
+    'pkeyphotocameramodel',
+}
+
+LENS_TAGS = {
+    'lens',
+    'lensmodel',
+    'lensmake',
+}
+
+WIDTH_TAGS = {
+    'pixelxdimension',
+    'exifimagewidth',
+    'exifexifimagewidth',
+    'imagewidth',
+}
+
+HEIGHT_TAGS = {
+    'pixelydimension',
+    'exifimagelength',
+    'exifexifimagelength',
+    'imagelength',
+    'exifimageheight',
+    'imageheight',
+}
+
+SCREENSHOT_TAGS = {
+    'usercomment',
+    'description',
+    'imagedescription',
+    'caption',
+    'captionabstract',
+}
+
+
+def _normalize_tag_name(tag) -> str:
+    """Normalize tag key to make matching tolerant to separators."""
+    if tag is None:
+        return ''
+    return TAG_NORMALIZER.sub('', str(tag)).lower()
+
+
+def _matches_tag(normalized_tag: str, aliases: set) -> bool:
+    """Check exact or suffix match to support vendor prefixes."""
+    return normalized_tag in aliases or any(normalized_tag.endswith(alias) for alias in aliases)
+
+
+def _prepare_value(value):
+    """Decode bytes values and return value otherwise unchanged."""
+    if isinstance(value, bytes):
+        for encoding in ('MacCyrillic', 'utf-8', 'latin1'):
+            try:
+                return value.decode(encoding)
+            except UnicodeDecodeError:
+                continue
+        logging.exception(f'{value}\n decode error')
+        return None
+
+    return value
 
 
 def get_exif(file_path: str, ext=None):
@@ -111,6 +206,46 @@ class ExifData:
 
             self[key] = value
 
+    def _handle_common_tag(self, tag, value):
+        """
+        Handle frequently used EXIF fields with tolerant tag naming.
+
+        HEIC/HEIF and some libraries may rename tags, so we normalize names and
+        process aliases in one place.
+        """
+        normalized_tag = _normalize_tag_name(tag)
+        if not normalized_tag:
+            return False
+
+        prepared_value = _prepare_value(value)
+        if prepared_value is None:
+            return False
+
+        if _matches_tag(normalized_tag, DATE_TAGS):
+            self.change_value('date', make_timestamp(str(prepared_value)))
+            return True
+        if _matches_tag(normalized_tag, SCREENSHOT_TAGS):
+            if 'screenshot' in str(prepared_value).lower():
+                self.change_value('is_screenshot', True)
+                return True
+        if _matches_tag(normalized_tag, BRAND_TAGS):
+            self.change_value('brand', str(prepared_value))
+            return True
+        if _matches_tag(normalized_tag, MODEL_TAGS):
+            self.change_value('model', str(prepared_value))
+            return True
+        if _matches_tag(normalized_tag, WIDTH_TAGS):
+            self.change_value('width', str(prepared_value))
+            return True
+        if _matches_tag(normalized_tag, HEIGHT_TAGS):
+            self.change_value('height', str(prepared_value))
+            return True
+        if _matches_tag(normalized_tag, LENS_TAGS):
+            self.change_value('lens', str(prepared_value))
+            return True
+
+        return False
+
     def get_exif(self):
         """
         Custom exif information by
@@ -120,11 +255,11 @@ class ExifData:
             f, self.file_ext = os.path.splitext(self.file_path)
 
         ext = self.file_ext.lower()
-        if ext in ('.jpg', '.png', '.gif', '.bmp', '.psd', '.tiff'):
+        if ext in config.PHOTO_EXTENSIONS:
             self.file_type = 'photo'
-        elif ext in ('.mp4', '.mov', '.avi'):
+        elif ext in config.VIDEO_EXTENSIONS:
             self.file_type = 'video'
-        elif ext in ('.mp3', '.m4a'):
+        elif ext in config.AUDIO_EXTENSIONS:
             self.file_type = 'audio'
         else:
             self.file_type = 'other'
@@ -149,6 +284,9 @@ class ExifData:
                 if self.date is None and ext in ('.jpg', '.tiff'):
                     self.get_exif_piexif()
 
+                if self.date is None and HAS_WIN32COM:
+                    self.get_exif_win32com()
+
         elif self.file_type in ('video', 'audio'):
             if HAS_WIN32COM:
                 self.get_exif_win32com()
@@ -157,18 +295,27 @@ class ExifData:
             self.get_exif_os()
 
     def get_exif_win32com(self):
-        """Get exif for media files (video, audio) by win32com."""
+        """Get exif for media files (video, audio, photos) by win32com."""
         if not HAS_WIN32COM:
             return
-        value = None
         try:
             properties = propsys.SHGetPropertyStoreFromParsingName(self.file_path)
-            value = properties.GetValue(pscon.PKEY_Media_DateEncoded).GetValue()
         except Exception as e:
             logging.error(f"win32com: can't open file {self}\nerror: {e}")
+            return
 
-        if value:
-            self.change_value('date', make_timestamp(str(value)))
+        for prop_name, prop_key in (
+            ('PKEY_Photo_DateTaken', pscon.PKEY_Photo_DateTaken),
+            ('PKEY_Media_DateEncoded', pscon.PKEY_Media_DateEncoded),
+        ):
+            try:
+                value = properties.GetValue(prop_key).GetValue()
+            except Exception as e:
+                logging.debug(f"win32com: skip {prop_name} for {self.file_path}: {e}")
+                continue
+
+            if value and self._handle_common_tag(prop_name, value):
+                return
 
     def get_exif_pyexiv(self):
         """Get exif by pyexiv2."""
@@ -197,34 +344,9 @@ class ExifData:
                         'Exif.Thumbnail.JPEGInterchangeFormatLength',
                     ):
                         continue
-
-                    if tag in (
-                        'Exif.Photo.DateTimeOriginal',
-                        'Exif.Image.DateTime',
-                        'Exif.Photo.DateTimeDigitized',
-                    ):
-                        value = tags.get(tag)
-                        if value:
-                            self.change_value('date', make_timestamp(str(value)))
-                    elif tag == 'Xmp.exif.UserComment':
-                        value = tags.get(tag)
-                        if 'screenshot' in value.lower():
-                            self.change_value('is_screenshot', True)
-                    elif tag == 'Exif.Image.Make':
-                        value = tags.get(tag)
-                        self.change_value('brand', str(value))
-                    elif tag == 'Exif.Image.Model':
-                        value = tags.get(tag)
-                        self.change_value('model', str(value))
-                    elif tag == 'Exif.Photo.PixelXDimension':
-                        value = tags.get(tag)
-                        self.change_value('width', str(value))
-                    elif tag == 'Exif.Photo.PixelYDimension':
-                        value = tags.get(tag)
-                        self.change_value('height', str(value))
-                    elif tag == 'Exif.Photo.LensModel':
-                        value = tags.get(tag)
-                        self.change_value('lens', str(value))
+                    value = tags.get(tag)
+                    if self._handle_common_tag(tag, value):
+                        continue
 
     def get_exif_exifread(self):
         """Get exif by exifread (not PNG)."""
@@ -240,29 +362,9 @@ class ExifData:
                 if tag == 'Thumbnail':
                     continue
 
-                if tag in ('Image DateTime', 'EXIF DateTimeOriginal', 'EXIF DateTimeDigitized'):
-                    value = tags.get(tag)
-                    if value:
-                        self.change_value('date', make_timestamp(str(value)))
-                elif tag == 'UserComment':
-                    value = str(tags.get(tag))
-                    if 'screenshot' in value.lower():
-                        self.change_value('is_screenshot', True)
-                elif tag == 'Image Make':
-                    value = tags.get(tag)
-                    self.change_value('brand', str(value))
-                elif tag == 'Image Model':
-                    value = tags.get(tag)
-                    self.change_value('model', str(value))
-                elif tag == 'EXIF ExifImageWidth':
-                    value = tags.get(tag)
-                    self.change_value('width', str(value))
-                elif tag == 'EXIF ExifImageLength':
-                    value = tags.get(tag)
-                    self.change_value('height', str(value))
-                elif tag == 'EXIF LensModel':
-                    value = tags.get(tag)
-                    self.change_value('lens', str(value))
+                value = tags.get(tag)
+                if self._handle_common_tag(tag, value):
+                    continue
 
     def get_exif_piexif(self):
         """Get exif by piexif (only JPG & TIFF)."""
@@ -291,29 +393,8 @@ class ExifData:
                     value = tags_key.get(tag_key)
                     if tag == 'Thumbnail':
                         continue
-                    if type(value) is bytes:
-                        try:
-                            value = value.decode('MacCyrillic')
-                        except UnicodeDecodeError as e:
-                            logging.exception(f'{value}\n decode error: {e}')
-                            continue
-
-                    if tag in ('DateTime', 'DateTimeOriginal', 'DateTimeDigitized'):
-                        if value:
-                            self.change_value('date', make_timestamp(str(value)))
-                    elif tag == 'UserComment':
-                        if isinstance(value, str) and 'screenshot' in value.lower():
-                            self.change_value('is_screenshot', True)
-                    elif tag == 'Make':
-                        self.change_value('brand', str(value))
-                    elif tag == 'Model':
-                        self.change_value('model', str(value))
-                    elif tag == 'PixelXDimension':
-                        self.change_value('width', str(value))
-                    elif tag == 'PixelYDimension':
-                        self.change_value('height', str(value))
-                    elif tag == 'LensModel':
-                        self.change_value('lens', str(value))
+                    if self._handle_common_tag(tag, value):
+                        continue
 
     def get_exif_pil(self):
         """Get exif by PIL."""
@@ -333,28 +414,8 @@ class ExifData:
                     tag = PIL_TAGS.get(key)
                     if tag == 'Thumbnail':
                         continue
-                    if type(value) is bytes:
-                        try:
-                            value = value.decode('MacCyrillic')
-                        except UnicodeDecodeError as e:
-                            logging.exception(f'{value}\n decode error: {e}')
-
-                    if tag in ('DateTime', 'DateTimeOriginal', 'DateTimeDigitized'):
-                        if value:
-                            self.change_value('date', make_timestamp(str(value)))
-                    elif tag == 'UserComment':
-                        if 'screenshot' in value.lower():
-                            self.change_value('is_screenshot', True)
-                    elif tag == 'Make':
-                        self.change_value('brand', str(value))
-                    elif tag == 'Model':
-                        self.change_value('model', str(value))
-                    elif tag == 'ExifImageWidth':
-                        self.change_value('width', str(value))
-                    elif tag == 'ExifImageHeight':
-                        self.change_value('height', str(value))
-                    elif tag == 'LensModel':
-                        self.change_value('lens', str(value))
+                    if self._handle_common_tag(tag, value):
+                        continue
 
     def get_exif_os(self):
         """Get data from OS (date)."""
